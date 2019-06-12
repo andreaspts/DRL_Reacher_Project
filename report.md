@@ -40,17 +40,25 @@ These points are clarified by following the pseudo-algortihm as taken from the [
   <img width="460" height="300" src="algorithm.png">
 </p>
 
-### Network architecture
-Due to the fact that we are using state vectors as an input and not image data we use a simple deep neural network instead of a convolutional neural network to determine the action-value function. The former consists of the following 5 layers coded into the model.py file:
+### Architectures of the used networks
+We are using two simple deep neural networks for both the actor and critic. They are built from `2` fully connected hidden layers coded into the model.py file. In particular, for the actor we have
 
-- Fully connected layer - input: 37 (state size) output: 64
-- Fully connected layer - input: 64 output: 32
-- Fully connected layer - input: 32 output: 16
-- Fully connected layer - input: 16 output: 8
-- Fully connected layer - input: 8 output: 4 (action size)
+- Fully connected layer - input: 33 (state_size) output: 128 (fc1_units) with ReLU activation
+- Fully connected layer - input: 128 (fc1_units) output: 128 (fc2_units) with ReLU activation
+- Fully connected layer - input: 128 (fc2_units) output: 4 (action_size) with tanh activation
 
-### Specification of parameters used in the Deep Q-Learning algorithm
-We speficy the parameters used in the Deep Q-Learning algorithm (as in the dqn-function of the Navigation_solution.ipynb notebook):
+where we also apply batch normalization after the first layer to improve gradient ascent. 
+
+For the critic we have
+
+- Fully connected layer - input: 33 (state_size) output: 128 (fc1_units) with ReLU activation
+- Fully connected layer - input: 132 (fc1_units+action_size) output: 128 (fc2_units) with ReLU activation
+- Fully connected layer - input: 128 (fc2_units) (Q-value) output: 1
+
+where we also apply batch normalization after the first layer to improve gradient descent. Notice the number of input nodes in the second layer which amounts to `fc1_units+action_size=132`. The concatenation reflects the particular concurrence of the two networks.
+
+### Specification of parameters used in the DDPG algorithm
+We speficy the parameters used in the DDPG algorithm (as in the ddpg-function of the Reacher_DDPG_solution.ipynb notebook):
 
 - We set the number of episodes n_episodes to `2000`. The number of episodes needed to solve the environment and reach a score of `30.0` is expected to be smaller.
 - We set the maximum number of steps per episode max_t to `1500`.
@@ -65,12 +73,16 @@ Furthermore, we give the parameters used in the ddpg_agent.py file:
 - The learning rate for the gradient descent for the critic network LR_CRITIC is set to `2 * 10^-4`.
 - The parameter to control the L2 weight decay WEIGHT_DECAY is set to `0`.
 
+For the [Ornstein-Uhlenbeck noise](https://en.wikipedia.org/wiki/Ornstein%E2%80%93Uhlenbeck_process), we used the parameters (as specified in the previous link):
+- `mu=0`
+- `theta = 0.15` and
+- `sigma = 0.1`.
 
 ## Results
 
-With the above specifications we create a training run and report the results.
+With the above specifications we create a training run and report the results. 
 
-First we give a plot of the scores over the episodes:
+We give a plot of the scores over the episodes:
 
 <p align="center">
   <img width="460" height="300" src="plot1.png">
@@ -101,6 +113,9 @@ Episode 197	Average Score: 30.06	Score: 32.05
 
 Environment solved in 197 episodes!	Average Score: 30.06
 ```
+
+We note here that on different test runs, the environment was solved in about `230` and `480` episodes which indicates the instability of the algorithm. This could call for the implementation of a more stable algorithm as discussed below.
+
 
 ## Possible extensions of the setting and future work
 
