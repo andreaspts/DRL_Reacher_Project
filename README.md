@@ -8,7 +8,7 @@ In this repository, we seek to apply the DDPG (deep deterministic policy gradien
 ### Introduction
 
 <p align="center">
-  <img width="460" height="300" src="reacher.jpeg">
+  <img width="460" height="300" src="reacher.jpg">
 </p>
 
 In this problem a single agent learns to move a double-jointed arm to reach to target locations. The above-given picture illustrates that the environment and code used here could in principle be extended to cover the training of `20` agents simultaneously.
