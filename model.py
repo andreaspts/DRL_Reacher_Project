@@ -1,5 +1,6 @@
-import numpy as np
+# Based in part on the DDPG algorithm as provided by Udacity's DRL course.
 
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
