@@ -6,69 +6,80 @@
 
 The employed learning algorithm is the DDPG algorithm which was introduced in the articles [Deterministic Policy Gradient Algorithms](http://proceedings.mlr.press/v32/silver14.pdf) and [Continuous control with deep reinforcement learning](https://arxiv.org/abs/1509.02971) to solve [Markov Decision Processes](https://en.wikipedia.org/wiki/Markov_decision_process) with continuous action spaces.
 
-At the heart of the learning agent are two deep neural networks which act as concurrent function approximators, i.e., they learn a Q-function (in an off-policy way via the Bellman equation) and a policy (via the Q-function) in parallel. Hence, it is a so-called [actor-critic approach](https://towardsdatascience.com/understanding-actor-critic-methods-931b97b6df3f) where the actor is represented by the first and the critic by the second network.
+At the heart of the learning agent are two deep neural networks which act as concurrent function approximators, i.e., they learn a Q-function (in an off-policy way via the Bellman equation) and a deterministic policy (via the Q-function) in parallel. Hence, it is a so-called [actor-critic approach](https://towardsdatascience.com/understanding-actor-critic-methods-931b97b6df3f) where the actor is represented by the first and the critic by the second network.
 
+More precisely, the actor network approximates the optimal deterministic policy which implies that the returned action `a` is the best one for any fed-in state `s`. In other words, it approximates the `argmax_a(Q(s,a))`-function. The state and action are fed into the, the critic to approximate the optimal action-value function through the input of the actor’s best action. Both networks have target networks (as in the standard deep Q-learning algorithm) to stabilize the algorithm. The respective target networks are copied over from their main counterpart networks every update step. (This could also be changed to an update every `4` steps with minimal changes to the code.)
 
-1. Fed with a state `s`, the actor network returns an action `a`. More precisely, the actor network approximates the optimal deterministic policy which implies that the returned action is the best one for any fed-in state.
-
-2. In the next step, we feed the state `s` and the action `a` into the critic network which returns the Q-value. In this way, the critic approximates the optimal action-value function through the input of the actor’s best action.
-
-3. Both networks have target networks (as in the standard deep Q-learning algorithm) to stabilize the algorithm. The respective target networks are copied over from their main counterpart networks every update step. (This could also be changed to an update every `4` steps.)
-
-4. 
-
-which is be taken and fed back into the algorithm as a reinforcement signal.
-
-The DQL algorithm has two major processes which are closely intertwined. In the first, we sample the environment by performing actions and store the observed experience tuples in a replay memory. In particular, within each episode and for every subordinate timestep,
-- we choose an action a from a state s using an epsilon-greedy policy (and the latter is obtained via the Q-table)
-- we take an action a, observe the reward r
-- we prepare the next state s'
-- we store the experience tuple <s,a,r,s'> in the replay memory 
-- we set s' to s
-
-In the second process, we randomly select a small batch of tuples from this memory and learn from that batch via a gradient descent update step. (For this we actually need a local network with weights **w** and a target network with weights **w-**. The target network is a separate network the weights of which (**w-**) are not changed during the learning step.) In particular,
-- we set a target (using the target action-value weights **w-**)
-- with this we perform the gradient descent in the local network 
-- at a fixed number of steps we reset the weights and obtain new **w-**'s.
-
-More specifically, in the replay buffer we store experience tuples <s, a, r, s'> up to a particular buffer size. The tuples are added gradually step by step, episode by episode to the buffer. For the gradient descent update we use MSELoss loss function (aka L2 loss function) and an Adam optimizer. The latter is also fed with the learning rate determining the speed of the gradient descent.  A "soft update" of the model parameters connects the local and target model and is responsible for resetting of weights of the target network.
-
-
-These points are clarified by following the pseudo-algortihm as taken from the [original literature](https://arxiv.org/abs/1509.02971) is depicted below
+These points become clearer when following the pseudo-code as taken from the [original literature](https://arxiv.org/abs/1509.02971):
 
 <p align="center">
   <img width="460" height="300" src="algorithm.png">
 </p>
 
+Some explanations are in order:
+
+1. Fed with a state `s`, the actor network returns an action `a`. After `a` is returned, we also add some noise to the action to encourage stochastic exploration and call this action `a`. The noise is generated through a [Ornstein-Uhlenbeck process](https://en.wikipedia.org/wiki/Ornstein%E2%80%93Uhlenbeck_process).
+
+2. Taking the action `a` leads to a release of the reward `r` and setting the environment to the state `s'`. This gives the experience tuple `<s,a,r,s'>` which is saved in the replay memory up to a particular buffer size. The tuples are added gradually step by step, episode by episode to the buffer.
+
+3. We randomly select a small batch of tuples from this memory and learn from that batch via gradient descent the optimal action-value function and via gradient ascent the optimal deterministic policy. 
+
+More precisely,
+
+for every tuple in the batch:
+3.a. We compute the target Q-value. This is done by pluggin `s'` into the target actor network, leading to the next action `a'`. This is put into the target critic network to obtain the next Q-value `Q'`. When discount factor is multiplied to this value and the reward `r` is added we have obtained the target Q-values.
+
+3.b. We compute the expected Q-value from the local critic network from the current state and action. From the expected Q-value and the target Q-value we gain the Temporal Difference error.
+
+3.c. Using this info from all tuples, we obtain the mean squared error which is minimized through gradient descent leading to an update of the weights of the target critic network. For this we use the MSELoss loss function (aka L2 loss function) and an Adam optimizer. The latter is also fed with the learning rate determining the speed of the gradient descent.
+
+3.d. With this we are ready to update the actor policy via gradient ascent. For this a new action is obtained by plugging the state `s` into the local actor network. Then Q-values are obtained by plugging the new action and `s` into the local critic network. With this we obtain the actor loss function `J` which is to be maximized thereafter. We observe that in the pseudo-code the chain rule is applied. In the code, one simply performs the update of the actor via
+
+```
+        # Compute actor loss
+        actions_pred = self.actor_local(states)
+        actor_loss = -self.critic_local(states, actions_pred).mean()
+        # Minimize the loss
+        self.actor_optimizer.zero_grad()
+        actor_loss.backward()
+        self.actor_optimizer.step()
+```
+
+4. Finally, a "soft update" of the model parameters connects the local and target models (via Polyak averaging) and is responsible for resetting of weights of the target networks.
+
+
 ### Architectures of the used networks
+
 We are using two simple deep neural networks for both the actor and critic. They are built from `2` fully connected hidden layers coded into the model.py file. In particular, for the actor we have
 
-- Fully connected layer - input: 33 (state_size) output: 128 (fc1_units) with ReLU activation
-- Fully connected layer - input: 128 (fc1_units) output: 128 (fc2_units) with ReLU activation
-- Fully connected layer - input: 128 (fc2_units) output: 4 (action_size) with tanh activation
+- Fully connected layer - input: `33` (state_size) output: `128` (fc1_units) with ReLU activation
+- Fully connected layer - input: `128` (fc1_units) output: `128` (fc2_units) with ReLU activation
+- Fully connected layer - input: `128` (fc2_units) output: `4` (action_size) with tanh activation
 
 where we also apply batch normalization after the first layer to improve gradient ascent. 
 
 For the critic we have
 
-- Fully connected layer - input: 33 (state_size) output: 128 (fc1_units) with ReLU activation
-- Fully connected layer - input: 132 (fc1_units+action_size) output: 128 (fc2_units) with ReLU activation
-- Fully connected layer - input: 128 (fc2_units) (Q-value) output: 1
+- Fully connected layer - input: `33` (state_size) output: ``128 (fc1_units) with ReLU activation
+- Fully connected layer - input: `132` (fc1_units+action_size) output: `128` (fc2_units) with ReLU activation
+- Fully connected layer - input: `128` (fc2_units) (Q-value) output: `1`
 
 where we also apply batch normalization after the first layer to improve gradient descent. Notice the number of input nodes in the second layer which amounts to `fc1_units+action_size=132`. The concatenation reflects the particular concurrence of the two networks.
 
+
 ### Specification of parameters used in the DDPG algorithm
+
 We speficy the parameters used in the DDPG algorithm (as in the ddpg-function of the Reacher_DDPG_solution.ipynb notebook):
 
 - We set the number of episodes n_episodes to `2000`. The number of episodes needed to solve the environment and reach a score of `30.0` is expected to be smaller.
 - We set the maximum number of steps per episode max_t to `1500`.
 
-Furthermore, we give the parameters used in the ddpg_agent.py file:
+Furthermore, we give the parameters used in the `ddpg_agent.py` file:
 
 - The size of the replay buffer BUFFER_SIZE is set to `10^6`.
 - The mini batch size BATCH_SIZE is set to `128`.
 - The discount factor GAMMA for future rewards is set to `0.99`.
-- We set the value for the soft update of the target parameters TAU to `10^-3`.
+- For both networks, we set the value for the soft update of the target parameters TAU to `10^-3`.
 - The learning rate for the gradient descent for the actor network LR_ACTOR is set to `2 * 10^-4`.
 - The learning rate for the gradient descent for the critic network LR_CRITIC is set to `2 * 10^-4`.
 - The parameter to control the L2 weight decay WEIGHT_DECAY is set to `0`.
@@ -77,6 +88,9 @@ For the [Ornstein-Uhlenbeck noise](https://en.wikipedia.org/wiki/Ornstein%E2%80%
 - `mu=0`
 - `theta = 0.15` and
 - `sigma = 0.1`.
+
+The noise is added to the agent's actions at training time to make it explore better. The consideration of such noise is heuristic so that stochastic exploration is encouraged (see above). 
+
 
 ## Results
 
