@@ -22,11 +22,12 @@ Some explanations are in order. For each and every episode and each and every ti
 
 2. Taking the action `a` leads to a release of the reward `r` and setting the environment to the state `s'`. This gives the experience tuple `<s,a,r,s'>` which is saved in the replay memory (of a particular buffer size). The tuples are added gradually step by step, episode by episode to the buffer.
 
-3. We randomly select a small batch of tuples from this memory and learn from that batch via gradient descent the optimal action-value function and via gradient ascent the optimal deterministic policy. 
+3. We randomly select a small batch of tuples from this memory (random sampling breaks up time correlations between tuples) and learn from that batch via gradient descent the optimal action-value function and via gradient ascent the optimal deterministic policy. 
 
 More precisely,
 
 for every tuple in the batch:
+
 3.a. We compute the target Q-value. This is done by pluggin `s'` into the target actor network, leading to the next action `a'`. This is put into the target critic network to obtain the next Q-value `Q'`. When discount factor is multiplied to this value and the reward `r` is added we have obtained the target Q-values.
 
 3.b. We compute the expected Q-value from the local critic network from the current state and action. From the expected Q-value and the target Q-value we gain the Temporal Difference error.
