@@ -40,6 +40,28 @@ Unity brain name: ReacherBrain
 ```
 ### Getting Started
 
+Computations were done using python 3.7. In addition, the following packages were mounted: **matplotlib**, **numpy**, **torch** and **unityagents** which is used to run the [Reacher environment](https://github.com/Unity-Technologies/ml-agents/blob/master/docs/Learning-Environment-Examples.md#reacher). More precisely,
+
+The python environment to run the code in this repository is set up by the following steps:
+
+Creation of a new environment with Python 3.7 (or 3.6).
+
+For Linux or Mac use the terminal with
+
+```
+	conda create --name drlnd python=3.7
+	source activate drlnd
+```
+while in Windows type:
+
+```
+	conda create --name drlnd python=3.7 
+	activate drlnd
+```
+
+To install the dependencies type in ```pip install matplotlib```, ```pip install numpy```, ```pip install pytorch torchvision``` and ```pip install unityagents```.
+
+
 To run version `1` of the environment (needed for the training of one `(1)` agent) it has to be downloaded first. For individual operating systems it can be obtained from:
 * Linux: [click here](https://s3-us-west-1.amazonaws.com/udacity-drlnd/P2/Reacher/one_agent/Reacher_Linux.zip)
 * Mac OSX: [click here](https://s3-us-west-1.amazonaws.com/udacity-drlnd/P2/Reacher/one_agent/Reacher.app.zip)
@@ -52,7 +74,7 @@ To run version `2` of the environment (needed for the training of one `(20)` age
 * Windows (32-bit): [click here](https://s3-us-west-1.amazonaws.com/udacity-drlnd/P2/Reacher/Reacher_Windows_x86.zip)
 * Windows (64-bit): [click here](https://s3-us-west-1.amazonaws.com/udacity-drlnd/P2/Reacher/Reacher_Windows_x86_64.zip)
 
-Computations were done using python 3.7. In addition, the following packages were mounted: **matplotlib**, **numpy**, **torch** and **unityagents** which is used to run the [Reacher environment](https://github.com/Unity-Technologies/ml-agents/blob/master/docs/Learning-Environment-Examples.md#reacher).
+The file has to be unpacked in the folder with the **Jupiter** notebook.
 
 ### Instructions
 
