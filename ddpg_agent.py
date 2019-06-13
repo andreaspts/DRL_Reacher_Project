@@ -1,3 +1,5 @@
+# Based in part on the DDPG algorithm as provided by Udacity's DRL course.
+
 import numpy as np
 import random
 import copy
