@@ -6,9 +6,9 @@
 
 The employed learning algorithm is the DDPG algorithm which was introduced in the articles [Deterministic Policy Gradient Algorithms](http://proceedings.mlr.press/v32/silver14.pdf) and [Continuous control with deep reinforcement learning](https://arxiv.org/abs/1509.02971) to solve [Markov Decision Processes](https://en.wikipedia.org/wiki/Markov_decision_process) with continuous action spaces.
 
-At the heart of the learning agent are two deep neural networks which act as concurrent function approximators, i.e., they learn a Q-function (in an off-policy way via the Bellman equation) and a deterministic policy (via the Q-function) in parallel. Hence, it is a so-called [actor-critic approach](https://towardsdatascience.com/understanding-actor-critic-methods-931b97b6df3f) where the actor is represented by the first and the critic by the second network.
+At the heart of the learning agent are two deep neural networks which act as concurrent function approximators, i.e., they learn a Q-function (in an off-policy way via the Bellman equation) and a deterministic policy (via this Q-function) in parallel. 
 
-More precisely, the actor network approximates the optimal deterministic policy which implies that the returned action `a` is the best one for any fed-in state `s`. In other words, it approximates the `argmax_a(Q(s,a))`-function. The state and action are fed into the, the critic to approximate the optimal action-value function through the input of the actor’s best action. Both networks have target networks (as in the standard deep Q-learning algorithm) to stabilize the algorithm. The respective target networks are copied over from their main counterpart networks every update step. (This could also be changed to an update every `4` steps with minimal changes to the code.)
+The DDPG algorithm is a so-called [actor-critic approach](https://towardsdatascience.com/understanding-actor-critic-methods-931b97b6df3f) where the actor is represented by one and the critic by another network. More precisely, the actor network approximates the optimal deterministic policy which implies that the returned action `a` is the best one for any fed-in state `s`. In other words, it approximates the `argmax_a(Q(s,a))`-function. The state and action are fed into the critic to approximate the optimal action-value function through the input of the actor’s best action. Both networks have target networks (as in the standard deep Q-learning algorithm) to stabilize the algorithm. The respective target networks are copied over from their main counterpart networks every update step. (This could also be changed to an update every `4` steps with minimal changes to the code.)
 
 These points become clearer when following the pseudo-code as taken from the [original literature](https://arxiv.org/abs/1509.02971):
 
@@ -16,11 +16,11 @@ These points become clearer when following the pseudo-code as taken from the [or
   <img width="460" height="300" src="algorithm.png">
 </p>
 
-Some explanations are in order:
+Some explanations are in order. For each and every episode and each and every time step:
 
-1. Fed with a state `s`, the actor network returns an action `a`. After `a` is returned, we also add some noise to the action to encourage stochastic exploration and call this action `a`. The noise is generated through a [Ornstein-Uhlenbeck process](https://en.wikipedia.org/wiki/Ornstein%E2%80%93Uhlenbeck_process).
+1. Fed with a state `s`, the actor network returns an action `a`. After `a` is returned, we also add some noise to the action to encourage stochastic exploration and call this overall action `a`. The noise is generated through a [Ornstein-Uhlenbeck process](https://en.wikipedia.org/wiki/Ornstein%E2%80%93Uhlenbeck_process).
 
-2. Taking the action `a` leads to a release of the reward `r` and setting the environment to the state `s'`. This gives the experience tuple `<s,a,r,s'>` which is saved in the replay memory up to a particular buffer size. The tuples are added gradually step by step, episode by episode to the buffer.
+2. Taking the action `a` leads to a release of the reward `r` and setting the environment to the state `s'`. This gives the experience tuple `<s,a,r,s'>` which is saved in the replay memory (of a particular buffer size). The tuples are added gradually step by step, episode by episode to the buffer.
 
 3. We randomly select a small batch of tuples from this memory and learn from that batch via gradient descent the optimal action-value function and via gradient ascent the optimal deterministic policy. 
 
